@@ -1,5 +1,5 @@
 streamlit
 tweepy
-transformers
-scikit-learn
 pandas
+scikit-learn
+transformers==4.36.2
