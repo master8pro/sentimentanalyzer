@@ -1,5 +1,5 @@
 streamlit
 tweepy
 transformers
-torch
+scikit-learn
 pandas
