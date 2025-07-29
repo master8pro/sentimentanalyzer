@@ -8,7 +8,7 @@ import torch
 # Load real sentiment analysis model (only once)
 @st.cache_resource
 def load_sentiment_model():
-    return pipeline("sentiment-analysis", model="cardiffnlp/twitter-xlm-roberta-base-sentiment")
+    return pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 analyzer = load_sentiment_model()
 
 # Setup Twitter API
