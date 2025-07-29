@@ -2,19 +2,27 @@ import streamlit as st
 import tweepy
 import os
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
+from transformers import pipeline
+import torch
+
+# Load real sentiment analysis model (only once)
+@st.cache_resource
+def load_sentiment_model():
+    device = 0 if torch.cuda.is_available() else -1
+    return pipeline("sentiment-analysis", model="pysentimiento/bert-base-multilingual-sentiment", device=device)
+
+analyzer = load_sentiment_model()
 
 # Setup Twitter API
 bearer_token = os.environ.get("TWITTER_BEARER_TOKEN")
 client = tweepy.Client(bearer_token=bearer_token, wait_on_rate_limit=True)
 
 # Streamlit UI
-st.title("🇲🇾 PRN Sabah 17: Sentiment Analyzer")
+st.title("🇲🇾 PRN Sabah 17: Real-Time Sentiment Analyzer")
 
 party = st.text_input("Enter a party keyword (e.g., Warisan, GRS, PH, BN):", value="Warisan")
 
-# Expanded search queries (improve match chances)
+# Expanded search queries
 queries = {
     "Warisan": 'Warisan OR #Warisan lang:ms -is:retweet',
     "GRS": 'GRS OR #GRS lang:ms -is:retweet',
@@ -23,44 +31,40 @@ queries = {
 }
 
 if party:
-    # Use expanded query if available
     query = queries.get(party, f"{party} lang:ms -is:retweet")
     st.text(f"Query used: {query}")
     st.write(f"📡 Fetching recent tweets about **{party}**...")
 
     try:
-        # Fetch tweets (you can lower or increase max_results)
-        tweets = client.search_recent_tweets(query=query, max_results=100)
+        tweets = client.search_recent_tweets(query=query, max_results=50)
+        tweet_list = [tweet.text for tweet in tweets.data] if tweets.data else []
 
-        tweet_list = []
-        if tweets.data:
-            for tweet in tweets.data:
-                tweet_list.append(tweet.text)
-
-            st.success(f"✅ {len(tweet_list)} tweets fetched.")
-        else:
+        if not tweet_list:
             st.warning("⚠️ No recent tweets found for this party.")
+        else:
+            st.success(f"✅ {len(tweet_list)} tweets fetched.")
 
-        # Display and analyze if tweets exist
-        if tweet_list:
-            df = pd.DataFrame(tweet_list, columns=["Tweet"])
+            # Run real sentiment analysis
+            results = analyzer(tweet_list)
 
-            # Sentiment mockup (replace with real model later)
-            tfidf = TfidfVectorizer()
-            X = tfidf.fit_transform(df["Tweet"])
-            clf = LogisticRegression()
-            clf.fit(X, [1 if i % 2 == 0 else 0 for i in range(len(df))])  # Dummy training
-            preds = clf.predict(X)
-
-            df["Sentiment"] = ["Positive" if p == 1 else "Negative" for p in preds]
+            df = pd.DataFrame({
+                "Tweet": tweet_list,
+                "Sentiment": [r['label'].capitalize() for r in results],
+                "Score": [round(r['score'], 3) for r in results]
+            })
 
             st.dataframe(df)
 
-            # Summary stats
-            pos = df["Sentiment"].value_counts().get("Positive", 0)
-            neg = df["Sentiment"].value_counts().get("Negative", 0)
+            # Summary
+            summary = df["Sentiment"].value_counts()
+            for label in ["Positive", "Negative", "Neutral"]:
+                count = summary.get(label, 0)
+                if label == "Positive":
+                    st.success(f"🟢 {label}: {count}")
+                elif label == "Negative":
+                    st.error(f"🔴 {label}: {count}")
+                else:
+                    st.info(f"🔵 {label}: {count}")
 
-            st.success(f"🟢 Positive: {pos}")
-            st.error(f"🔴 Negative: {neg}")
     except Exception as e:
         st.error(f"❌ Error fetching tweets: {str(e)}")
