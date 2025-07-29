@@ -3,3 +3,4 @@ tweepy
 pandas
 scikit-learn
 transformers==4.36.2
+torch
