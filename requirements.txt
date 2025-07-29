@@ -1,3 +1,4 @@
 streamlit
-scikit-learn
+tweepy
 pandas
+scikit-learn
