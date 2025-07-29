@@ -18,7 +18,7 @@ if party:
 
     # Fetch tweets (you can adjust max_results)
     query = f"{party} lang:ms -is:retweet"
-    tweets = client.search_recent_tweets(query=query, max_results=50)
+    tweets = client.search_recent_tweets(query=query, max_results=100)
 
     tweet_list = []
     if tweets.data:
