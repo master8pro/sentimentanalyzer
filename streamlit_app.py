@@ -8,8 +8,7 @@ import torch
 # Load real sentiment analysis model (only once)
 @st.cache_resource
 def load_sentiment_model():
-    device = 0 if torch.cuda.is_available() else -1
-    return pipeline("sentiment-analysis", model="pysentimiento/bert-base-multilingual-sentiment", device=device)
+    return pipeline("sentiment-analysis", model="nlptown/bert-base-multilingual-uncased-sentiment")
 
 analyzer = load_sentiment_model()
 
