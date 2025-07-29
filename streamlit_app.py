@@ -1,40 +1,50 @@
 import streamlit as st
+import tweepy
+import os
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-import time
-import os
 
-st.set_page_config(page_title="PRN Sabah 17 Sentiment Live Analyzer", layout="wide")
+# Setup Twitter API
+bearer_token = os.environ.get("TWITTER_BEARER_TOKEN")
+client = tweepy.Client(bearer_token=bearer_token, wait_on_rate_limit=True)
 
-st.title("📊 PRN Sabah 17 Sentiment Analyzer (LIVE)")
-data_file = 'data.csv'  # You must have this file in your repo
+# Streamlit UI
+st.title("🇲🇾 PRN Sabah 17: Sentiment Analyzer")
+party = st.text_input("Enter a party keyword (e.g., Warisan, GRS, PH, BN):", value="Warisan")
 
-# Refresh every 15 seconds
-refresh_interval = 15  # seconds
+if party:
+    st.write(f"Fetching tweets for: **{party}**...")
 
-@st.cache_data(ttl=refresh_interval)
-def load_data():
-    df = pd.read_csv(data_file)
-    return df
+    # Fetch tweets (you can adjust max_results)
+    query = f"{party} lang:ms -is:retweet"
+    tweets = client.search_recent_tweets(query=query, max_results=50)
 
-df = load_data()
+    tweet_list = []
+    if tweets.data:
+        for tweet in tweets.data:
+            tweet_list.append(tweet.text)
+    else:
+        st.warning("No recent tweets found for this party.")
 
-# Vectorize and model
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(df['text'])
-model = LogisticRegression()
-model.fit(X, df['label'])
+    # Display tweets
+    if tweet_list:
+        df = pd.DataFrame(tweet_list, columns=["Tweet"])
 
-# Predict live
-df['prediction'] = model.predict(X)
+        # Sentiment mockup: You can replace this with your model later
+        tfidf = TfidfVectorizer()
+        X = tfidf.fit_transform(df["Tweet"])
+        clf = LogisticRegression()
+        # Dummy train (replace with real model later)
+        clf.fit(X, [1 if i % 2 == 0 else 0 for i in range(len(df))])
+        preds = clf.predict(X)
 
-# Display sentiment counts
-sentiment_counts = df['prediction'].value_counts()
-st.bar_chart(sentiment_counts)
+        df["Sentiment"] = ["Positive" if p == 1 else "Negative" for p in preds]
 
-# Show raw data if needed
-if st.checkbox("Show raw data"):
-    st.write(df)
+        st.dataframe(df)
 
-st.info(f"🔄 Auto-updating every {refresh_interval} seconds...")
+        # Summary
+        pos = df["Sentiment"].value_counts().get("Positive", 0)
+        neg = df["Sentiment"].value_counts().get("Negative", 0)
+        st.success(f"✅ Positive: {pos}")
+        st.error(f"❌ Negative: {neg}")
