@@ -4,7 +4,7 @@ import os
 
 BEARER_TOKEN = os.environ.get("AAAAAAAAAAAAAAAAAAAAAK463QEAAAAAn4pu7PcZ6KLHBr86kGZWajmGjto%3DwFjGA3oRi5vbsIUjxCjDMXPeakk5kYqfDt7XPHxXZJHLZWErd6")  # Set this in Streamlit secrets
 SEARCH_QUERY = "Sabah OR PRN Sabah OR WARISAN OR GRS OR PH OR BN"
-MAX_RESULTS = 50
+MAX_RESULTS = 100
 
 def fetch_tweets():
     url = f"https://api.twitter.com/2/tweets/search/recent?query={SEARCH_QUERY}&max_results={MAX_RESULTS}&tweet.fields=created_at,text"
